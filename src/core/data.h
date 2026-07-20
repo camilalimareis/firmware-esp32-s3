@@ -42,9 +42,6 @@ namespace Data {
 
         float currentBat;
         float currentMot;
-
-        // Arduino Config
-        ArduinoConfig config;
     };
 
     extern ArduinoConfig config;

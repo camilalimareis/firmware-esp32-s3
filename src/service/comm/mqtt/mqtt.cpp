@@ -43,16 +43,20 @@ namespace {
 	constexpr uint32_t MQTT_IV_MS = 1000;
 
 	// Auxiliares
+	// Envia o comando ao Arduino mega
 	void sendCmd(const char* s){
 		UART::SerialArduino.println(s);
 		ACK::setLast(s);
 	}
 
-    // Uso: 
-    // - Start: Uso padrão, motor funcionando de forma comum
-    // - Hold: Trava o motor em uma velocidade fixa, ignorando o pedal.
-    // - Stop: Motor desacelera suavemente até ficar totalmente parado. Bom para testes envolvendo diodos e mofestes
+	// Handlers
+	// Atualizar função para que receba comandos mais diretos, como set voltagemax now
 	void handleMotor(const char* msg) {
+		// Uso: 
+    	// - Start: Uso padrão, motor funcionando de forma comum
+    	// - Hold: Trava o motor em uma velocidade fixa, ignorando o pedal.
+    	// - Stop: Motor desacelera suavemente até ficar totalmente parado. Bom para testes envolvendo diodos e mofestes
+
 		if (!strcasecmp(msg, "STOP") || !strcasecmp(msg, "OFF")  || !strcmp(msg, "0")) {
 			sendCmd("STOP");
 		}
@@ -63,7 +67,16 @@ namespace {
 
         // Deve seguir a estrutura: "HOLD 50"
 		else if (strncasecmp(msg, "HOLD", 4) == 0) {
-			sendCmd(msg);
+			char command[15];
+
+			if (msg[4] == ' ') {
+        		int pct = atoi(msg + 5);
+				pct = constrain(pct, 0, 100);
+
+				sprintf(command,"HOLD %d", pct);
+
+				sendCmd(command);
+			}
 		}
 
 		else {
@@ -71,30 +84,9 @@ namespace {
 		}
 	}
 
+	// Modificar função para que siga a ideia:
+	// ConfigSite envia valor modificado -> Esp recebe e atualiza dados -> Esp envia dados por meio de sendCmd para o Mega
 	void handleConfig(JsonDocument& doc) {
-		// -------- TELEMETRIA --------
-		if (doc["max_pct"].is<float>()) {
-			float max_pct = doc["max_pct"].as<float>();
-			Data::data.config.maxPct = constrain(max_pct, 0.0f, 100.0f);
-		}
-
-		if (doc["min_v"].is<float>())
-			Data::data.config.voltageMin = doc["min_v"].as<float>();
-
-		if (doc["max_v"].is<float>())
-			Data::data.config.voltageMax = doc["max_v"].as<float>();
-
-		if (doc["wheel_cm"].is<float>())
-			Data::data.config.wheel_cm = doc["wheel_cm"].as<float>();
-
-		if (doc["ppr"].is<int>())
-			Data::data.config.ppr = (uint8_t)doc["ppr"].as<int>();
-
-        // Mudar
-		if (doc["poll_ms"].is<int>())
-			Data::data.now = (uint32_t)doc["poll_ms"].as<int>();
-
-    
 		// -------- LOG --------
         if (doc["log_enabled"].is<bool>())
 			LOGGER::setEnabled(doc["log_enabled"].as<bool>());
@@ -109,6 +101,27 @@ namespace {
 
 		// -------- CONFIG AVANÇADA --------
         // Config responsável pela Rampagem, PWM, RPM. Config que mais afeta o motor
+		if (doc["max_pct"].is<float>()) {
+			float max_pct = doc["max_pct"].as<float>();
+			Data::config.maxPct = constrain(max_pct, 0.0f, 100.0f);
+		}
+
+		if (doc["min_v"].is<float>())
+			Data::config.voltageMin = doc["min_v"].as<float>();
+
+		if (doc["max_v"].is<float>())
+			Data::config.voltageMax = doc["max_v"].as<float>();
+
+		if (doc["wheel_cm"].is<float>())
+			Data::config.wheel_cm = doc["wheel_cm"].as<float>();
+
+		if (doc["ppr"].is<int>())
+			Data::config.ppr = (uint8_t)doc["ppr"].as<int>();
+
+        // Mudar
+		if (doc["poll_ms"].is<int>())
+			Data::data.now = (uint32_t)doc["poll_ms"].as<int>();
+
 		if (doc["pwm_hz"].is<float>()) {
 			float pwm_hz = doc["pwm_hz"].as<float>();
 			Data::config.pwm_hz = constrain(pwm_hz, 100.0f, 8000.0f);
@@ -165,16 +178,16 @@ namespace {
 
 		Serial.printf("[MQTT RX] %s | %s\n", topic, msg);
 
-		// MOTOR
-		if (strcmp(topic, CONFIG.topics.commandMotor) == 0) {
-			handleMotor(msg);
-			return;
-		}
-
 		// JSON
 		JsonDocument doc;
 		if (deserializeJson(doc, msg)) {
 			Serial.println("[MQTT] JSON error");
+			return;
+		}
+
+		// MOTOR
+		if (strcmp(topic, CONFIG.topics.commandMotor) == 0) {
+			handleMotor(msg);
 			return;
 		}
 
@@ -254,13 +267,6 @@ namespace {
 		doc["current_bat_a"] = Data::data.currentBat;
 		doc["current_mot_a"] = Data::data.currentMot;
 
-		doc["min"]      = Data::data.config.voltageMin;
-		doc["max"]      = Data::data.config.voltageMax;
-
-		doc["wheel_cm"] = Data::data.config.wheel_cm;
-		doc["ppr"]      = Data::data.config.ppr;
-		doc["max_pct"]          = Data::data.config.maxPct;
-
 		doc["poll_ms"] = Data::data.now;
 
 		// -------- LOGGER --------
@@ -269,15 +275,22 @@ namespace {
 		doc["log_size"]    = LOGGER::getCachedSize();
 
 		// -------- CONFIG AVANÇADA --------
-		doc["pwm_hz"]          = Data::data.config.pwm_hz;
+		doc["min"]      = Data::config.voltageMin;
+		doc["max"]      = Data::config.voltageMax;
 
-		doc["start_min_pct"]   = Data::data.config.startMin;
-		doc["rapid_ms"]        = Data::data.config.rapid_ms;
-		doc["rapid_up"]        = Data::data.config.rapidUp;
-		doc["slew_up"]         = Data::data.config.slewUp;
-		doc["slew_dn"]         = Data::data.config.slewDown;
+		doc["wheel_cm"] = Data::config.wheel_cm;
+		doc["ppr"]      = Data::config.ppr;
+		doc["max_pct"]  = Data::config.maxPct;
 
-		doc["zero_timeout_ms"] = Data::data.config.zeroTimeout;
+		doc["pwm_hz"]          = Data::config.pwm_hz;
+
+		doc["start_min_pct"]   = Data::config.startMin;
+		doc["rapid_ms"]        = Data::config.rapid_ms;
+		doc["rapid_up"]        = Data::config.rapidUp;
+		doc["slew_up"]         = Data::config.slewUp;
+		doc["slew_dn"]         = Data::config.slewDown;
+
+		doc["zero_timeout_ms"] = Data::config.zeroTimeout;
 
 		// -------- ACK --------
 		doc["ack"] = (ACK::getLast()[0] != '\0') ? ACK::getLast() : nullptr;
@@ -339,7 +352,7 @@ namespace MQTT {
 		mqttPublishTelemetry();
 
 		if (ACK::getLast()[0] != '\0' && (now - ACK::getTimestamp()) > 2000) {
-			ACK::setLast("");
+			ACK::setLast(""); // Adicionar mensagem?
 		}
 	}
 
