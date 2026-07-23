@@ -106,9 +106,14 @@ namespace {
 			Data::config.maxPct = constrain(max_pct, 0.0f, 100.0f);
 		}
 
-		if (doc["min_v"].is<float>())
-			Data::config.voltageMin = doc["min_v"].as<float>();
+		if (doc["min_v"].is<float>()) {
+            float minV = doc["min_v"].as<float>();
+            Data::config.voltageMin = minV;
 
+            char command[32];
+            snprintf(command, sizeof(command), "SET_MINV %.3f", minV);
+            sendCmd(command);
+		}
 		if (doc["max_v"].is<float>())
 			Data::config.voltageMax = doc["max_v"].as<float>();
 
