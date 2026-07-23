@@ -155,19 +155,31 @@ namespace {
 			Data::config.pwm_hz = constrain(pwm_hz, 100.0f, 8000.0f);
 		}
 
-		if (doc["start_min_pct"].is<float>()) {
-			float start_min_pct = doc["start_min_pct"].as<float>();
-			Data::config.startMin = constrain(start_min_pct, 0.0f, 40.0f);
+		if (doc["max_pct"].is<float>()) {
+            float max_pct = doc["max_pct"].as<float>();
+            Data::config.maxPct = constrain(max_pct, 0.0f, 100.0f);
+
+            char command[32];
+            snprintf(command, sizeof(command), "SET_MAXPCT %.0f", max_pct);
+            sendCmd(command);
 		}
 
 		if (doc["rapid_ms"].is<float>()) {
-			float rapid_ms = doc["rapid_ms"].as<float>();
-			Data::config.rapid_ms = constrain(rapid_ms, 50.0f, 1500.0f);
+            float rapid_ms = doc["rapid_ms"].as<float>();
+            Data::config.rapid_ms = constrain(rapid_ms, 50.0f, 1500.0f);
+
+            char command[32];
+            snprintf(command, sizeof(command), "SET_RAPIDMS %.0f", rapid_ms);
+            sendCmd(command);
 		}
 
 		if (doc["rapid_up"].is<float>()) {
-			float rapid_up = doc["rapid_up"].as<float>();
-			Data::config.rapidUp = constrain(rapid_up, 10.0f, 400.0f);
+            float rapid_up = doc["rapid_up"].as<float>();
+            Data::config.rapidUp = constrain(rapid_up, 10.0f, 400.0f);
+
+            char command[32];
+            snprintf(command, sizeof(command), "SET_RAPIDUP %.1f", rapid_up);
+            sendCmd(command);
 		}
 
 		if (doc["slew_up"].is<float>()) {
@@ -181,8 +193,12 @@ namespace {
 		}
 
 		if (doc["zero_timeout_ms"].is<float>()) {
-			float zero_timeout_ms = doc["zero_timeout_ms"].as<float>();
-			Data::config.zeroTimeout = constrain(zero_timeout_ms, 50.0f, 2000.0f);
+            float zero_timeout_ms = doc["zero_timeout_ms"].as<float>();
+            Data::config.zeroTimeout = constrain(zero_timeout_ms, 50.0f, 2000.0f);
+
+            char command[32];
+            snprintf(command, sizeof(command), "SET_ZEROTO %.0f", zero_timeout_ms);
+            sendCmd(command);
 		}
 
 		ACK::setLast("CONFIG_UPDATED");
