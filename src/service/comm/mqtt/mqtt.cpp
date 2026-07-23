@@ -151,16 +151,20 @@ namespace {
 			Data::data.now = (uint32_t)doc["poll_ms"].as<int>();
 
 		if (doc["pwm_hz"].is<float>()) {
-			float pwm_hz = doc["pwm_hz"].as<float>();
-			Data::config.pwm_hz = constrain(pwm_hz, 100.0f, 8000.0f);
+           float pwm_hz = doc["pwm_hz"].as<float>();
+           Data::config.pwm_hz = constrain(pwm_hz, 100.0f, 8000.0f);
+
+           char command[32];
+           snprintf(command, sizeof(command), "SET_PWMF %.0f", pwm_hz);
+           sendCmd(command);
 		}
 
-		if (doc["max_pct"].is<float>()) {
-            float max_pct = doc["max_pct"].as<float>();
-            Data::config.maxPct = constrain(max_pct, 0.0f, 100.0f);
+		if (doc["start_min_pct"].is<float>()) {
+            float start_min_pct = doc["start_min_pct"].as<float>();
+            Data::config.startMin = constrain(start_min_pct, 0.0f, 40.0f);
 
             char command[32];
-            snprintf(command, sizeof(command), "SET_MAXPCT %.0f", max_pct);
+            snprintf(command, sizeof(command), "SET_STARTMIN %.0f", start_min_pct);
             sendCmd(command);
 		}
 
@@ -182,14 +186,25 @@ namespace {
             sendCmd(command);
 		}
 
-		if (doc["slew_up"].is<float>()) {
-			float slew_up = doc["slew_up"].as<float>();
-			Data::config.slewUp = constrain(slew_up, 5.0f, 200.0f);
-		}
+		if (doc["slew_up"].is<float>() || doc["slew_dn"].is<float>()) {
 
-		if (doc["slew_dn"].is<float>()) {
-			float slew_dn = doc["slew_dn"].as<float>();
-			Data::config.slewDown = constrain(slew_dn, 5.0f, 300.0f);
+            float slew_up = Data::config.slewUp;
+            float slew_dn = Data::config.slewDown;
+
+            if (doc["slew_up"].is<float>()) {
+              slew_up = doc["slew_up"].as<float>();
+              Data::config.slewUp = constrain(slew_up, 5.0f, 200.0f);
+           }
+
+            if (doc["slew_dn"].is<float>()) {
+              slew_dn = doc["slew_dn"].as<float>();
+              Data::config.slewDown = constrain(slew_dn, 5.0f, 300.0f);
+    }
+
+            char command[64];
+            snprintf(command, sizeof(command), "SET_SLEW %.1f %.1f",slew_up, slew_dn);
+
+            sendCmd(command);
 		}
 
 		if (doc["zero_timeout_ms"].is<float>()) {
