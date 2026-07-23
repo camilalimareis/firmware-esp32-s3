@@ -109,9 +109,14 @@ namespace {
 		if (doc["min_v"].is<float>())
 			Data::config.voltageMin = doc["min_v"].as<float>();
 
-		if (doc["max_v"].is<float>())
-			Data::config.voltageMax = doc["max_v"].as<float>();
+		if (doc["max_v"].is<float>()) {
+            float max_v = doc["max_v"].as<float>();
+            Data::config.voltageMax = max_v;
 
+            char command[32];
+            snprintf(command, sizeof(command), "SET_MAXV %.3f", max_v);
+            sendCmd(command);
+        }
 		if (doc["wheel_cm"].is<float>())
 			Data::config.wheel_cm = doc["wheel_cm"].as<float>();
 
