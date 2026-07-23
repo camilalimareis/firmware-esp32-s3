@@ -102,10 +102,14 @@ namespace {
 		// -------- CONFIG AVANÇADA --------
         // Config responsável pela Rampagem, PWM, RPM. Config que mais afeta o motor
 		if (doc["max_pct"].is<float>()) {
-			float max_pct = doc["max_pct"].as<float>();
-			Data::config.maxPct = constrain(max_pct, 0.0f, 100.0f);
-		}
+            float max_pct = doc["max_pct"].as<float>();
+            Data::config.maxPct = constrain(max_pct, 0.0f, 100.0f);
 
+            char command[32];
+            snprintf(command, sizeof(command), "SET_MAXPCT %.0f", max_pct);
+            sendCmd(command);
+		}
+		
 		if (doc["min_v"].is<float>()) {
             float minV = doc["min_v"].as<float>();
             Data::config.voltageMin = minV;
@@ -124,11 +128,23 @@ namespace {
             sendCmd(command);
 		}
 		
-		if (doc["wheel_cm"].is<float>())
-			Data::config.wheel_cm = doc["wheel_cm"].as<float>();
+		if (doc["wheel_cm"].is<float>()) {
+            float wheel_cm = doc["wheel_cm"].as<float>();
+            Data::config.wheel_cm = wheel_cm;
 
-		if (doc["ppr"].is<int>())
-			Data::config.ppr = (uint8_t)doc["ppr"].as<int>();
+            char command[32];
+            snprintf(command, sizeof(command), "SET_WHEEL %.1f", wheel_cm);
+            sendCmd(command);
+		}
+		
+		if (doc["ppr"].is<int>()) {
+           int ppr = doc["ppr"].as<int>();
+           Data::config.ppr = (uint8_t)ppr;
+
+           char command[32];
+           snprintf(command, sizeof(command), "SET_PPR %d", ppr);
+           sendCmd(command);
+		}
 
         // Mudar
 		if (doc["poll_ms"].is<int>())
