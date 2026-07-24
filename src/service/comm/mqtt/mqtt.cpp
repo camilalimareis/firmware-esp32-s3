@@ -220,11 +220,11 @@ namespace {
 	}
 
 
-	// Callback | Site do MotorConfig -> Esp -> Motor
+	// Callback | Site -> Esp -> Motor
 	void mqttCallback(char* topic, byte* payload, unsigned int length) {
 		char msg[256];
 
-		// Verificar se dá erro aqui
+		// Verificar 
 		if (length >= sizeof(msg)) {
 			Serial.printf("[MQTT] Payload too large (%u bytes)\n", length);
 			return;
@@ -237,21 +237,19 @@ namespace {
 
 		Serial.printf("[MQTT RX] %s | %s\n", topic, msg);
 
-		// JSON
-		JsonDocument doc;
-		if (deserializeJson(doc, msg)) {
-			Serial.println("[MQTT] JSON error");
-			return;
-		}
-
-		// MOTOR
+		// MOTOR (texto puro, não é JSON)
 		if (strcmp(topic, CONFIG.topics.commandMotor) == 0) {
 			handleMotor(msg);
 			return;
 		}
 
-		// CONFIG
+		// CONFIG (JSON)
 		if (strcmp(topic, CONFIG.topics.commandConfig) == 0) {
+			JsonDocument doc;
+			if (deserializeJson(doc, msg)) {
+				Serial.println("[MQTT] JSON error");
+				return;
+			}
 			handleConfig(doc);
 			return;
 		}
@@ -300,7 +298,7 @@ namespace {
 		Serial.println("======================================");
 	}
 
-	// Publicar | ESP -> DashBoard
+	// Publicar | ESP -> Dashboard
 	void mqttPublishTelemetry() {
 		if (!client.connected()) return;
 
