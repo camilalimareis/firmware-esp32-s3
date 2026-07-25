@@ -42,6 +42,9 @@ namespace Data {
 
         float currentBat;
         float currentMot;
+
+        bool overrideEnabled;
+        float overridePct;
     };
 
     extern ArduinoConfig config;
