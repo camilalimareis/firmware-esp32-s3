@@ -48,6 +48,16 @@ namespace {
                 else if (strcmp(key, "WHEEL") == 0)  Data::config.wheel_cm = val;
                 else if (strcmp(key, "PPR") == 0)    Data::config.ppr = (uint8_t)atoi(value);
                 else if (strcmp(key, "MAXPCT") == 0) Data::config.maxPct = val;
+                else if (strcmp(key, "MS") == 0)       Data::data.now = (uint32_t)val;
+                else if (strcmp(key, "OVR") == 0)      Data::data.overrideEnabled = (val != 0);
+                else if (strcmp(key, "OVRPCT") == 0)   Data::data.overridePct = val;
+                else if (strcmp(key, "PWMHZ") == 0)    Data::config.pwm_hz = (uint16_t)val;
+                else if (strcmp(key, "RAPIDMS") == 0)  Data::config.rapid_ms = (uint16_t)val;
+                else if (strcmp(key, "RAPIDUP") == 0)  Data::config.rapidUp = val;
+                else if (strcmp(key, "SLEWUP") == 0)   Data::config.slewUp = val;
+                else if (strcmp(key, "SLEWDN") == 0)   Data::config.slewDown = val;
+                else if (strcmp(key, "STARTMIN") == 0) Data::config.startMin = (uint8_t)val;
+                else if (strcmp(key, "ZEROTO") == 0)   Data::config.zeroTimeout = (uint32_t)val;
             }
 
             tok = strtok_r(NULL, " ", &saveptr);

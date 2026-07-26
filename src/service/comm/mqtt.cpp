@@ -13,7 +13,7 @@ namespace {
     struct Topics {
         const char* telemetryJson;
         const char* commandMotor;
-        //const char* commandThrottle;
+        const char* commandThrottle;
         const char* commandConfig;
         const char* status;
     };
@@ -33,7 +33,7 @@ namespace {
         .topics {
             .telemetryJson    =  "pb/telemetry/json",
             .commandMotor     =  "pb/cmd/motor",
-            //.commandThrottle  =  "pb/cmd/throttle",
+            .commandThrottle  =  "pb/cmd/throttle",
             .commandConfig    =  "pb/cmd/config",
             .status           =  "pb/status",
         }
@@ -219,6 +219,20 @@ namespace {
 		ACK::setLast("CONFIG_UPDATED");
 	}
 
+	// Handler | Traduz o JSON de override do site pro texto que o Mega entende
+	void handleThrottle(JsonDocument& doc) {
+		const char* mode = doc["mode"] | "";
+
+		if (!strcmp(mode, "auto")) {
+			sendCmd("START");
+		} else if (!strcmp(mode, "override")) {
+			int pct = doc["pct"] | 0;
+			char command[16];
+			snprintf(command, sizeof(command), "HOLD %d", constrain(pct, 0, 100));
+			sendCmd(command);
+		}
+	}
+
 
 	// Callback | Site -> Esp -> Motor
 	void mqttCallback(char* topic, byte* payload, unsigned int length) {
@@ -253,6 +267,17 @@ namespace {
 			handleConfig(doc);
 			return;
 		}
+
+		// THROTTLE / OVERRIDE (JSON)
+		if (strcmp(topic, CONFIG.topics.commandThrottle) == 0) {
+			JsonDocument doc;
+			if (deserializeJson(doc, msg)) {
+				Serial.println("[MQTT] JSON error");
+				return;
+			}
+			handleThrottle(doc);
+			return;
+		}
 	}
 
 	// Conexão
@@ -280,8 +305,9 @@ namespace {
 			Serial.println("[MQTT] Connected");
 
 			client.publish  (CONFIG.topics.status, "online", true);
-			client.subscribe(CONFIG.topics.commandMotor);
-			client.subscribe(CONFIG.topics.commandConfig);
+			client.subscribe(CONFIG.topics.commandMotor,    1);
+			client.subscribe(CONFIG.topics.commandConfig,   1);
+			client.subscribe(CONFIG.topics.commandThrottle, 1);
 
 			lastErr = -999;
 			firstTry = true;
@@ -323,6 +349,9 @@ namespace {
 
 		doc["current_bat_a"] = Data::data.currentBat;
 		doc["current_mot_a"] = Data::data.currentMot;
+
+		doc["override"]     = Data::data.overrideEnabled;
+		doc["override_pct"] = Data::data.overridePct;
 
 		doc["poll_ms"] = Data::data.now;
 
